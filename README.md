@@ -5,7 +5,7 @@ Simple PNG renderer for [prometheus](https://github.com/prometheus/prometheus) b
 
 ## Example
 ```
-http://localhost:8080/?query=min(noolite_rx_sensor_temp_celsius)by(ch)&from=-7d&width=600&height=400
+http://localhost:8080/?query=min(noolite_rx_sensor_temp_celsius)by(ch)&from=-7d&width=600&height=400&areaMode=all&areaAlpha=0.07&title=Temp&bgcolor=161619&colorList=7EB26D,EAB839,6ED0E0
 ```
 ![render.png](render.png)
 
