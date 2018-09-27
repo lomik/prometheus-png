@@ -2,25 +2,32 @@
 
 
 [[projects]]
+  digest = "1:523a21bfa4854b6c4ca4fdaa1cd5ca8ca55df93ac2565cac8e0192e59b531879"
   name = "bitbucket.org/tebeka/strftime"
   packages = ["."]
+  pruneopts = "UT"
   revision = "af5e0ef38369dfb5819b56d27d593142841e4600"
   version = "0.1.2"
 
 [[projects]]
+  digest = "1:ffe9824d294da03b391f44e1ae8281281b4afc1bdaa9588c9097785e3af10cec"
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
+  pruneopts = "UT"
   revision = "8991bc29aa16c548c550c7ff78260e27b9ab7c73"
   version = "v1.1.1"
 
 [[projects]]
   branch = "master"
+  digest = "1:191658a05a3f0f5110540d24564b596ce451133dc96e32fbf0887a701b30a8ca"
   name = "github.com/evmar/gocairo"
   packages = ["cairo"]
+  pruneopts = "UT"
   revision = "ddd30f837497f6fcfe5e3c3665b97d7c17d381fe"
 
 [[projects]]
   branch = "master"
+  digest = "1:997efffae9aff9ddefde5bc2fa6ebf42cfef3bfdf0c5b96319eb20245ef040c5"
   name = "github.com/go-graphite/carbonapi"
   packages = [
     "date",
@@ -28,59 +35,75 @@
     "expr/helper",
     "expr/interfaces",
     "expr/types",
-    "pkg/parser"
+    "pkg/parser",
   ]
-  revision = "0137b80c752d6280f26e2479bb509af5c63521ab"
+  pruneopts = "UT"
+  revision = "11b639f654888769cd124c88b6421561113898ca"
 
 [[projects]]
   branch = "master"
+  digest = "1:6e9d18cf688444c4fbfc08b5788d08800faefd7faf95219f4f73457b01415557"
   name = "github.com/go-graphite/protocol"
   packages = ["carbonapi_v3_pb"]
+  pruneopts = "UT"
   revision = "ba004f8085ada03f57fc8ba189b638b675fece56"
 
 [[projects]]
+  digest = "1:8039a6237bf71c598b91387304fd8bd270248d7274fe1105783535945196ac14"
   name = "github.com/go-playground/form"
   packages = ["."]
+  pruneopts = "UT"
   revision = "572fa772c66ec5e3606a1a548406e10fb62de317"
   version = "v3.1.3"
 
 [[projects]]
   branch = "master"
+  digest = "1:0e8ac7fcfb931e69affa6c8308a890b4ce1b039d1052c3914e798491dd53aca5"
   name = "github.com/gogo/protobuf"
   packages = [
     "gogoproto",
     "proto",
     "protoc-gen-gogo/descriptor",
-    "sortkeys"
+    "sortkeys",
   ]
+  pruneopts = "UT"
   revision = "e14cafb6a2c249986e51c4b65c3206bf18578715"
 
 [[projects]]
   branch = "master"
+  digest = "1:57c2cb438edb524e67623c1509d22f3963ee87c5efbc5f8cc1222baddf477a0c"
   name = "github.com/lomik/og-rek"
   packages = ["."]
+  pruneopts = "UT"
   revision = "628eefeb8d8065e3c4300d3556181a255d1ab4ff"
 
 [[projects]]
+  digest = "1:0028cb19b2e4c3112225cd871870f2d9cf49b9b4276531f03438a88e94be86fe"
   name = "github.com/pmezard/go-difflib"
   packages = ["difflib"]
+  pruneopts = "UT"
   revision = "792786c7400a136282c1664665ae0a8db921c6c2"
   version = "v1.0.0"
 
 [[projects]]
+  digest = "1:18752d0b95816a1b777505a97f71c7467a8445b8ffb55631a7bf779f6ba4fa83"
   name = "github.com/stretchr/testify"
   packages = ["assert"]
+  pruneopts = "UT"
   revision = "f35b8ab0b5a2cef36673838d662e249dd9c94686"
   version = "v1.2.2"
 
 [[projects]]
   branch = "master"
+  digest = "1:f6eda3af90a5876a8aa9eb9524e0fde3acad07dfa041d0b61928bdce7d3975c8"
   name = "github.com/wangjohn/quickselect"
   packages = ["."]
+  pruneopts = "UT"
   revision = "ed8402a42d5f52ff8d3369f179e12243906f298a"
 
 [[projects]]
   branch = "master"
+  digest = "1:fe3be90b72e3d862e4b1cc36669adf162db0004d7008793dbf7bf1538e88eb82"
   name = "gonum.org/v1/gonum"
   packages = [
     "blas",
@@ -94,13 +117,21 @@
     "lapack",
     "lapack/gonum",
     "lapack/lapack64",
-    "mat"
+    "mat",
   ]
+  pruneopts = "UT"
   revision = "72366fbe5489967a1dc6b3f462def64018e088c3"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "9ad0fd4243e42bc47f0b451422aedd93a4cc426f9432f067bbfca059dc5ee15a"
+  input-imports = [
+    "github.com/go-graphite/carbonapi/date",
+    "github.com/go-graphite/carbonapi/expr/functions/cairo/png",
+    "github.com/go-graphite/carbonapi/expr/types",
+    "github.com/go-graphite/protocol/carbonapi_v3_pb",
+    "github.com/go-playground/form",
+    "github.com/stretchr/testify/assert",
+  ]
   solver-name = "gps-cdcl"
   solver-version = 1
