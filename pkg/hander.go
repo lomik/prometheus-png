@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/go-graphite/carbonapi/date"
@@ -60,7 +61,9 @@ func formatLegend(nameMap map[string]string) string {
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	type G struct {
-		Expr string
+		Expr     string
+		Legend   string
+		Template *template.Template
 	}
 	params := struct {
 		G       map[int]*G    `form:"-"`
@@ -99,6 +102,18 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	for index, gr := range params.G {
+		gr.Legend = r.URL.Query().Get(fmt.Sprintf("g%d.legend", index))
+		if gr.Legend != "" {
+			t, err := template.New("legend").Parse(gr.Legend)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			gr.Template = t
+		}
+	}
+
 	draftPictureParams := png.GetPictureParams(r, nil)
 
 	ctx, cancel := context.WithTimeout(r.Context(), params.Timeout)
@@ -121,7 +136,14 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	u.Path = h.queryRangePath
 
-	for _, graphData := range params.G {
+	indexes := make([]int, 0, len(params.G))
+	for index, _ := range params.G {
+		indexes = append(indexes, index)
+	}
+	sort.Ints(indexes)
+
+	for _, index := range indexes {
+		graphData := params.G[index]
 		q := u.Query()
 		q.Set("query", graphData.Expr)
 		q.Set("start", strconv.Itoa(int(from32)))
