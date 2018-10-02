@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -19,6 +20,8 @@ import (
 )
 
 var timeNow = time.Now
+
+var exprRegexp = regexp.MustCompile("^g([0-9]+)[.]expr$")
 
 type Handler struct {
 	defaultTimeZone *time.Location
@@ -56,7 +59,11 @@ func formatLegend(nameMap map[string]string) string {
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	type G struct {
+		Expr string
+	}
 	params := struct {
+		G       map[int]*G    `form:"-"`
 		Query   string        `form:"query"`
 		From    string        `form:"from"`
 		Until   string        `form:"until"`
@@ -64,9 +71,31 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Timeout time.Duration `form:"timeout"`
 	}{
 		Timeout: h.defaultTimeout,
+		G:       map[int]*G{},
 	}
 
-	if !parseGetRequest(w, r, &params, "query") {
+	if !parseGetRequest(w, r, &params) {
+		return
+	}
+
+	if params.Query != "" {
+		params.G[0] = &G{Expr: params.Query}
+	}
+
+	for k, v := range r.URL.Query() {
+		t := exprRegexp.FindStringSubmatch(k)
+		if len(t) > 0 {
+			graphID, err := strconv.Atoi(t[1])
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			params.G[graphID] = &G{Expr: v[0]}
+		}
+	}
+
+	if len(params.G) < 1 {
+		http.Error(w, "g0.expr required", http.StatusBadRequest)
 		return
 	}
 
@@ -83,6 +112,8 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		step = 1
 	}
 
+	metricData := make([]*types.MetricData, 0)
+
 	u, err := url.Parse(h.promAddr)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -90,68 +121,68 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	u.Path = h.queryRangePath
 
-	q := u.Query()
-	q.Set("query", params.Query)
-	q.Set("start", strconv.Itoa(int(from32)))
-	q.Set("end", strconv.Itoa(int(until32)))
-	q.Set("step", strconv.Itoa(int(step)))
-	u.RawQuery = q.Encode()
+	for _, graphData := range params.G {
+		q := u.Query()
+		q.Set("query", graphData.Expr)
+		q.Set("start", strconv.Itoa(int(from32)))
+		q.Set("end", strconv.Itoa(int(until32)))
+		q.Set("step", strconv.Itoa(int(step)))
+		u.RawQuery = q.Encode()
 
-	req, err := http.NewRequest("GET", u.String(), nil)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	res, err := http.DefaultClient.Do(req.WithContext(ctx))
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadGateway)
-		return
-	}
-
-	if res.StatusCode != 200 {
-		http.Error(w, fmt.Sprintf("prometheus status: %s", res.Status), http.StatusBadGateway)
-		return
-	}
-
-	promBody, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadGateway)
-		return
-	}
-
-	promRes := &PrometheusResponse{}
-	err = json.Unmarshal(promBody, promRes)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	metricData := make([]*types.MetricData, 0)
-
-	for _, r := range promRes.Data.Result {
-		if len(r.Values) < 1 {
-			continue
+		req, err := http.NewRequest("GET", u.String(), nil)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
-		step := int64(1)
-		if len(r.Values) > 1 {
-			step = r.Values[1].Timestamp - r.Values[0].Timestamp
+
+		res, err := http.DefaultClient.Do(req.WithContext(ctx))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadGateway)
+			return
 		}
-		md := &types.MetricData{
-			FetchResponse: pb.FetchResponse{
-				Name:              formatLegend(r.Metric),
-				StartTime:         r.Values[0].Timestamp,
-				StopTime:          r.Values[len(r.Values)-1].Timestamp,
-				StepTime:          step,
-				Values:            make([]float64, len(r.Values)),
-				ConsolidationFunc: "average",
-			},
-			ValuesPerPoint: 1,
+
+		if res.StatusCode != 200 {
+			http.Error(w, fmt.Sprintf("prometheus status: %s", res.Status), http.StatusBadGateway)
+			return
 		}
-		for i, v := range r.Values {
-			md.FetchResponse.Values[i] = v.Value
+
+		promBody, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadGateway)
+			return
 		}
-		metricData = append(metricData, md)
+
+		promRes := &PrometheusResponse{}
+		err = json.Unmarshal(promBody, promRes)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		for _, r := range promRes.Data.Result {
+			if len(r.Values) < 1 {
+				continue
+			}
+			step := int64(1)
+			if len(r.Values) > 1 {
+				step = r.Values[1].Timestamp - r.Values[0].Timestamp
+			}
+			md := &types.MetricData{
+				FetchResponse: pb.FetchResponse{
+					Name:              formatLegend(r.Metric),
+					StartTime:         r.Values[0].Timestamp,
+					StopTime:          r.Values[len(r.Values)-1].Timestamp,
+					StepTime:          step,
+					Values:            make([]float64, len(r.Values)),
+					ConsolidationFunc: "average",
+				},
+				ValuesPerPoint: 1,
+			}
+			for i, v := range r.Values {
+				md.FetchResponse.Values[i] = v.Value
+			}
+			metricData = append(metricData, md)
+		}
 	}
 
 	pictureParams := png.GetPictureParams(r, metricData)
