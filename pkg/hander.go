@@ -1,6 +1,7 @@
 package pkg
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -40,7 +41,15 @@ func NewPNG(promAddr string, queryRangePath string, defaultTimeout time.Duration
 	}
 }
 
-func formatLegend(nameMap map[string]string) string {
+func formatLegend(nameMap map[string]string, tpl *template.Template) string {
+	if tpl != nil {
+		var b bytes.Buffer
+		err := tpl.Execute(&b, nameMap)
+		if err != nil {
+			return err.Error()
+		}
+		return b.String()
+	}
 	kv := make([]string, 0, len(nameMap))
 	for k, v := range nameMap {
 		if k == "__name__" {
@@ -191,7 +200,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 			md := &types.MetricData{
 				FetchResponse: pb.FetchResponse{
-					Name:              formatLegend(r.Metric),
+					Name:              formatLegend(r.Metric, graphData.Template),
 					StartTime:         r.Values[0].Timestamp,
 					StopTime:          r.Values[len(r.Values)-1].Timestamp,
 					StepTime:          step,
