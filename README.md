@@ -28,7 +28,9 @@ Usage of ./prometheus-png:
 ```
 
 ## URI Parameters
-* **query** - prometheus query
+* **g0.expr**, **g1.expr**, ..., **gN.expr** - prometheus queries
+* **g0.legend**, **g1.legend**, ..., **gN.legend** - custom legend [template](https://golang.org/pkg/text/template/). Tag values can be printed with {{.tagname}} instruction
+* **query** - alias for g0.expr
 * **timeout** - optional custom query timeout
 * [all GET-parameters from carbonapi for format=png](https://github.com/go-graphite/carbonapi/blob/master/cmd/carbonapi/COMPATIBILITY.md#render)
 
