@@ -62,6 +62,7 @@ majorGridLineColor = "white"
 minorGridLineColor = "grey"
 areaAlpha = "NaN"
 fontName = "Sans"
+bgcolor = "black"
 ```
 
 ## URI Parameters
