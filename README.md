@@ -34,7 +34,7 @@ Usage of ./prometheus-png:
     	Default timeout for queries (default 10s)
 ```
 Config file
-```
+```toml
 # You can use special macros "${ENV:VARIABLE_NAME}" in config
 # It will be replaced with environment variable value before parse TOML
 [main]
