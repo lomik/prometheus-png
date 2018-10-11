@@ -36,7 +36,7 @@ Usage of ./prometheus-png:
 Config file
 ```toml
 # You can use special macros "${ENV:VARIABLE_NAME}" in config
-# It will be replaced with environment variable value before parse TOML
+# It will be replaced to environment variable value before parse TOML
 [main]
 listen = ":8080"
 prometheus-addr = "http://127.0.0.1:9090/"
