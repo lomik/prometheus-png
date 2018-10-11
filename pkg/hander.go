@@ -75,12 +75,13 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Template *template.Template
 	}
 	params := struct {
-		G       map[int]*G    `form:"-"`
-		Query   string        `form:"query"`
-		From    string        `form:"from"`
-		Until   string        `form:"until"`
-		TZ      string        `form:"tz"`
-		Timeout time.Duration `form:"timeout"`
+		G        map[int]*G    `form:"-"`
+		Query    string        `form:"query"`
+		From     string        `form:"from"`
+		Until    string        `form:"until"`
+		TZ       string        `form:"tz"`
+		Timeout  time.Duration `form:"timeout"`
+		Template string        `form:"template"`
 	}{
 		Timeout: h.defaultTimeout,
 		G:       map[int]*G{},
@@ -216,7 +217,17 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	pictureParams := png.GetPictureParams(r, metricData)
+	if len(metricData) == 0 {
+		// No Data
+		metricData = append(metricData, &types.MetricData{
+			FetchResponse: pb.FetchResponse{
+				StartTime: 0,
+				StopTime:  0,
+			},
+			ValuesPerPoint: 1,
+		})
+	}
+	pictureParams := png.GetPictureParamsWithTemplate(r, params.Template, metricData)
 
 	response := png.MarshalPNG(pictureParams, metricData)
 
