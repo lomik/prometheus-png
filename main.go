@@ -93,8 +93,6 @@ func main() {
 		if _, err := toml.Decode(configBody, &config); err != nil {
 			log.Fatal(err)
 		}
-
-		return
 	}
 
 	if flagset["prometheus"] {
