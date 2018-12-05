@@ -5,7 +5,7 @@ PNG renderer for [prometheus](https://github.com/prometheus/prometheus) based on
 
 ## Example
 ```
-http://localhost:8080/?query=min(noolite_rx_sensor_temp_celsius)by(ch)&from=-7d&width=600&height=400&title=Temp
+http://localhost:8080/?g0.expr=min(noolite_rx_sensor_temp_celsius)by(ch)&from=-7d&width=600&height=400&title=Temp
 ```
 <img src="graph3.png" width="600" height="400">
 
