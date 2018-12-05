@@ -23,7 +23,6 @@ import (
 
 var timeNow = time.Now
 
-var exprRegexp = regexp.MustCompile("^g([0-9]+)[.]expr$")
 var gNRegexp = regexp.MustCompile("^g([0-9]+)[.](.*?)$")
 
 type Handler struct {
