@@ -68,7 +68,7 @@ bgcolor = "black"
 ## URI Parameters
 * **g0.expr**, **g1.expr**, ..., **gN.expr** - prometheus queries
 * **g0.legend**, **g1.legend**, ..., **gN.legend** - custom legend [template](https://golang.org/pkg/text/template/). Tag values can be printed with {{.tagname}} instruction
-* **query** - alias for g0.expr
+* **gN.filter[labelName]=labelValue** - display only series with corresponding label values
 * **timeout** - optional custom query timeout
 * **pixelRatio** - device pixel ratio
 * **template** - template name from config

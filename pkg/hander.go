@@ -206,10 +206,18 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+	SeriesLoop:
 		for _, r := range promRes.Data.Result {
 			if len(r.Values) < 1 {
 				continue
 			}
+			// check filter
+			for labelName, filterValue := range graphData.Filter {
+				if labelValue, exists := r.Metric[labelName]; !exists || filterValue != labelValue {
+					continue SeriesLoop
+				}
+			}
+
 			step := int64(1)
 			if len(r.Values) > 1 {
 				step = r.Values[1].Timestamp - r.Values[0].Timestamp
