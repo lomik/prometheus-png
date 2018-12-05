@@ -2,10 +2,9 @@ FROM golang:alpine as builder
 
 WORKDIR /go/src/github.com/lomik/prometheus-png
 
-COPY . .
-
 RUN apk --no-cache add make pkgconfig cairo-dev gcc g++
 
+COPY . .
 RUN make
 
 FROM ubuntu:latest as fonts

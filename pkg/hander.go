@@ -24,6 +24,7 @@ import (
 var timeNow = time.Now
 
 var exprRegexp = regexp.MustCompile("^g([0-9]+)[.]expr$")
+var gNRegexp = regexp.MustCompile("^g([0-9]+)[.](.*?)$")
 
 type Handler struct {
 	defaultTimeZone *time.Location
@@ -70,8 +71,9 @@ func formatLegend(nameMap map[string]string, tpl *template.Template) string {
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	type G struct {
-		Expr     string
-		Legend   string
+		Expr     string            `form:"expr"`
+		Legend   string            `form:"legend"`
+		Filter   map[string]string `form:"filter"`
 		Template *template.Template
 	}
 	params := struct {
@@ -82,46 +84,59 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		TZ       string        `form:"tz"`
 		Timeout  time.Duration `form:"timeout"`
 		Template string        `form:"template"`
+		Format   string        `form:"format"`
 	}{
 		Timeout: h.defaultTimeout,
 		G:       map[int]*G{},
+		Format:  "png",
 	}
 
 	if !parseGetRequest(w, r, &params) {
 		return
 	}
 
-	if params.Query != "" {
-		params.G[0] = &G{Expr: params.Query}
-	}
+	gValues := make(map[int]url.Values)
 
 	for k, v := range r.URL.Query() {
-		t := exprRegexp.FindStringSubmatch(k)
+		t := gNRegexp.FindStringSubmatch(k)
 		if len(t) > 0 {
 			graphID, err := strconv.Atoi(t[1])
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
-			params.G[graphID] = &G{Expr: v[0]}
+			d, exists := gValues[graphID]
+			if !exists {
+				d = url.Values{}
+				gValues[graphID] = d
+			}
+			d[t[2]] = v
 		}
 	}
 
-	if len(params.G) < 1 {
-		http.Error(w, "g0.expr required", http.StatusBadRequest)
-		return
-	}
-
-	for index, gr := range params.G {
-		gr.Legend = r.URL.Query().Get(fmt.Sprintf("g%d.legend", index))
-		if gr.Legend != "" {
-			t, err := template.New("legend").Parse(gr.Legend)
+	for k, values := range gValues {
+		g := &G{}
+		if err := formDecoder.Decode(g, values); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if g.Expr == "" {
+			continue
+		}
+		if g.Legend != "" {
+			t, err := template.New("legend").Parse(g.Legend)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
-			gr.Template = t
+			g.Template = t
 		}
+		params.G[k] = g
+	}
+
+	if len(params.G) < 1 {
+		http.Error(w, "g0.expr is required", http.StatusBadRequest)
+		return
 	}
 
 	draftPictureParams := png.GetPictureParams(r, nil)
@@ -229,8 +244,14 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	pictureParams := png.GetPictureParamsWithTemplate(r, params.Template, metricData)
 
-	response := png.MarshalPNG(pictureParams, metricData)
+	var response []byte
 
-	w.Header().Set("Content-Type", "image/png")
+	if params.Format == "svg" {
+		response = png.MarshalSVG(pictureParams, metricData)
+		w.Header().Set("Content-Type", "image/svg")
+	} else {
+		response = png.MarshalPNG(pictureParams, metricData)
+		w.Header().Set("Content-Type", "image/png")
+	}
 	w.Write(response)
 }
