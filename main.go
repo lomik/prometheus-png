@@ -32,6 +32,7 @@ type MainConfig struct {
 	PrometheusAddr string        `toml:"prometheus-addr"`
 	PrometheusPath string        `toml:"prometheus-path"`
 	PrometheusAuth string		 `toml:"prometheus-auth"`
+	CACert		   string		 `toml:"cacert"`
 	TimeoutRaw     string        `toml:"timeout"`
 	Timeout        time.Duration `toml:"-"`
 }
@@ -48,6 +49,7 @@ func main() {
 			PrometheusPath: "/api/v1/query_range",
 			PrometheusAuth: "",
 			Listen:         ":8080",
+			CACert:			"",
 			Timeout:        10 * time.Second,
 			TimeoutRaw:     "10s",
 		},
@@ -56,6 +58,7 @@ func main() {
 	prom := flag.String("prometheus", config.Main.PrometheusAddr, "Prometheus addr")
 	promPath := flag.String("prometheus.path", config.Main.PrometheusPath, "Path to query_range endpoint")
 	promAuth := flag.String("prometheus.auth", config.Main.PrometheusAuth, "Authorization header")
+	caCert := flag.String("cacert", config.Main.CACert, "CA certificate path")
 	listen := flag.String("listen", config.Main.Listen, "Listen addr")
 	defaultTimeout := flag.Duration("timeout", config.Main.Timeout, "Default timeout for queries")
 	configPrintDefault := flag.Bool("config-print-default", false, "Print default config")
@@ -107,6 +110,9 @@ func main() {
 	if flagset["prometheus.auth"] {
 		config.Main.PrometheusAuth = *promAuth
 	}
+	if flagset["cacert"] {
+		config.Main.CACert = *caCert
+	}
 	if flagset["listen"] {
 		config.Main.Listen = *listen
 	}
@@ -145,6 +151,10 @@ func main() {
 		png.SetTemplate(templateName, png.GetPictureParams(httptest.NewRequest("GET", "/?"+values.Encode(), nil), nil))
 	}
 
-	http.Handle("/", pkg.NewPNG(config.Main.PrometheusAddr, config.Main.PrometheusPath, config.Main.PrometheusAuth, config.Main.Timeout))
+	handler, err := pkg.NewPNG(config.Main.PrometheusAddr, config.Main.PrometheusPath, config.Main.PrometheusAuth, config.Main.CACert, config.Main.Timeout)
+	if err != nil {
+		log.Fatal(err)
+	}
+	http.Handle("/", handler)
 	log.Fatal(http.ListenAndServe(config.Main.Listen, nil))
 }
