@@ -3,6 +3,8 @@ package pkg
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -29,16 +31,35 @@ type Handler struct {
 	defaultTimeZone *time.Location
 	promAddr        string
 	queryRangePath  string
+	authHeader		string
 	defaultTimeout  time.Duration
+	httpClient		*http.Client
 }
 
-func NewPNG(promAddr string, queryRangePath string, defaultTimeout time.Duration) *Handler {
+func NewPNG(promAddr string, queryRangePath string, authHeader string, caCert string, defaultTimeout time.Duration) (*Handler, error) {
+	var rootCAs *x509.CertPool = nil
+	if caCert != "" {
+		caBytes, err := ioutil.ReadFile(caCert)
+		if err != nil {
+			return nil, fmt.Errorf("Can't read CA certificate: %w", err)
+		}
+		rootCAs = x509.NewCertPool()
+		rootCAs.AppendCertsFromPEM(caBytes)
+	}
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{
+			RootCAs: rootCAs,
+		},
+	}
+	httpClient := &http.Client{Transport: tr}
 	return &Handler{
 		defaultTimeZone: time.Local,
 		promAddr:        promAddr,
 		queryRangePath:  queryRangePath,
+		authHeader:	     authHeader,
 		defaultTimeout:  defaultTimeout,
-	}
+		httpClient:		 httpClient,
+	}, nil
 }
 
 func formatLegend(nameMap map[string]string, tpl *template.Template) string {
@@ -180,8 +201,11 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+		if h.authHeader != "" {
+			req.Header.Set("Authorization", h.authHeader)
+		}
 
-		res, err := http.DefaultClient.Do(req.WithContext(ctx))
+		res, err := h.httpClient.Do(req.WithContext(ctx))
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadGateway)
 			return

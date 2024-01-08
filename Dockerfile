@@ -1,4 +1,4 @@
-FROM golang:alpine as builder
+FROM golang:1.11-alpine as builder
 
 WORKDIR /go/src/github.com/lomik/prometheus-png
 
@@ -7,14 +7,14 @@ RUN apk --no-cache add make pkgconfig cairo-dev gcc g++
 COPY . .
 RUN make
 
-FROM ubuntu:latest as fonts
+FROM ubuntu:18.04 as fonts
 RUN apt update && apt install -y fonts-roboto
 
 FROM alpine:latest
 
 COPY --from=fonts /usr/share/fonts/truetype/roboto/hinted /usr/share/fonts/ttf-roboto-hinted
 
-RUN apk --no-cache add ca-certificates cairo fontconfig ttf-dejavu ttf-freefont ttf-ubuntu-font-family && \
+RUN apk --no-cache add ca-certificates cairo fontconfig ttf-dejavu ttf-freefont && \
     fc-cache -f
 
 WORKDIR /
