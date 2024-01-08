@@ -29,14 +29,16 @@ type Handler struct {
 	defaultTimeZone *time.Location
 	promAddr        string
 	queryRangePath  string
+	authHeader		string
 	defaultTimeout  time.Duration
 }
 
-func NewPNG(promAddr string, queryRangePath string, defaultTimeout time.Duration) *Handler {
+func NewPNG(promAddr string, queryRangePath string, authHeader string, defaultTimeout time.Duration) *Handler {
 	return &Handler{
 		defaultTimeZone: time.Local,
 		promAddr:        promAddr,
 		queryRangePath:  queryRangePath,
+		authHeader:	     authHeader,
 		defaultTimeout:  defaultTimeout,
 	}
 }
@@ -179,6 +181,9 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
+		}
+		if h.authHeader != "" {
+			req.Header.Set("Authorization", h.authHeader)
 		}
 
 		res, err := http.DefaultClient.Do(req.WithContext(ctx))
